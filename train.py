@@ -23,7 +23,7 @@ from Net.wide_resnet import wide_resnet_cifar
 from Net.densenet import densenet121
 
 # Import loss functions
-from Losses.loss import cross_entropy, focal_loss, focal_loss_adaptive
+from Losses.loss import *
 from Losses.loss import mmce, mmce_weighted
 from Losses.loss import brier_score
 
@@ -64,6 +64,12 @@ def loss_function_save_name(loss_function,
                             gamma3=1.0,
                             lamda=1.0):
     res_dict = {
+        'se_loss_s': 'se_loss',
+        'mse_loss_s': 'mse_loss',
+        'se_loss_n': 'se_loss',
+        'mse_loss_n': 'mse_loss',
+        'se_loss': 'se_loss',
+        'mse_loss': 'mse_loss',
         'cross_entropy': 'cross_entropy',
         'focal_loss': 'focal_loss_gamma_' + str(gamma),
         'focal_loss_adaptive': 'focal_loss_adaptive_gamma_' + str(gamma),
@@ -100,8 +106,8 @@ def parseArgs():
     load_loc = './'
     model = "resnet50"
     epoch = 350
-    first_milestone = 150 #Milestone for change in lr
-    second_milestone = 250 #Milestone for change in lr
+    first_milestone = 150  # Milestone for change in lr
+    second_milestone = 250  # Milestone for change in lr
     gamma_schedule_step1 = 100
     gamma_schedule_step2 = 250
 
@@ -197,7 +203,6 @@ if __name__ == "__main__":
     device = torch.device("cuda" if cuda else "cpu")
     print("CUDA set: " + str(cuda))
 
-
     num_classes = dataset_num_classes[args.dataset]
 
     # Choosing the model to train
@@ -206,7 +211,6 @@ if __name__ == "__main__":
     # Setting model name
     if args.model_name is None:
         args.model_name = args.model
-
 
     if args.gpu is True:
         net.cuda()
@@ -218,7 +222,9 @@ if __name__ == "__main__":
     num_epochs = args.epoch
     if args.load:
         net.load_state_dict(torch.load(args.save_loc + args.saved_model_name))
-        start_epoch = int(args.saved_model_name[args.saved_model_name.rfind('_')+1:args.saved_model_name.rfind('.model')])
+        start_epoch = int(
+            args.saved_model_name
+            [args.saved_model_name.rfind('_') + 1: args.saved_model_name.rfind('.model')])
 
     if args.optimiser == "sgd":
         opt_params = net.parameters()
@@ -232,7 +238,8 @@ if __name__ == "__main__":
         optimizer = optim.Adam(opt_params,
                                lr=args.learning_rate,
                                weight_decay=args.weight_decay)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[args.first_milestone, args.second_milestone], gamma=0.1)
+    scheduler = optim.lr_scheduler.MultiStepLR(
+        optimizer, milestones=[args.first_milestone, args.second_milestone], gamma=0.1)
 
     if (args.dataset == 'tiny_imagenet'):
         train_loader = dataset_loader[args.dataset].get_data_loader(
@@ -319,20 +326,16 @@ if __name__ == "__main__":
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             print('New best error: %.4f' % (1 - best_val_acc))
-            save_name = args.save_loc + \
-                        args.model_name + '_' + \
-                        loss_function_save_name(args.loss_function, args.gamma_schedule, gamma, args.gamma, args.gamma2, args.gamma3, args.lamda) + \
-                        '_best_' + \
-                        str(epoch + 1) + '.model'
+            save_name = args.save_loc + args.model_name + '_' + loss_function_save_name(
+                args.loss_function, args.gamma_schedule, gamma, args.gamma, args.gamma2, args.gamma3, args.lamda) + '_best_' + '.model'
             torch.save(net.state_dict(), save_name)
 
         if (epoch + 1) % args.save_interval == 0:
             save_name = args.save_loc + \
-                        args.model_name + '_' + \
-                        loss_function_save_name(args.loss_function, args.gamma_schedule, gamma, args.gamma, args.gamma2, args.gamma3, args.lamda) + \
-                        '_' + str(epoch + 1) + '.model'
+                args.model_name + '_' + \
+                loss_function_save_name(args.loss_function, args.gamma_schedule, gamma, args.gamma, args.gamma2, args.gamma3, args.lamda) + \
+                '_' + str(epoch + 1) + '.model'
             torch.save(net.state_dict(), save_name)
-
 
     with open(save_name[:save_name.rfind('_')] + '_train_loss.json', 'a') as f:
         json.dump(training_set_loss, f)

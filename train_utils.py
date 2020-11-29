@@ -9,9 +9,16 @@ from torch import nn
 from Losses.loss import cross_entropy, focal_loss, focal_loss_adaptive
 from Losses.loss import mmce, mmce_weighted
 from Losses.loss import brier_score
+from Losses.loss import *
 
 
 loss_function_dict = {
+    'se_loss_s': se_loss,
+    'mse_loss_s': mse_loss,
+    'se_loss_n': se_loss,
+    'mse_loss_n': mse_loss,
+    'se_loss': se_loss,
+    'mse_loss': mse_loss,
     'cross_entropy': cross_entropy,
     'focal_loss': focal_loss,
     'focal_loss_adaptive': focal_loss_adaptive,
@@ -45,7 +52,8 @@ def train_single_epoch(epoch,
 
         logits = model(data)
         if ('mmce' in loss_function):
-            loss = (len(data) * loss_function_dict[loss_function](logits, labels, gamma=gamma, lamda=lamda, device=device))
+            loss = (len(data) * loss_function_dict[loss_function]
+                    (logits, labels, gamma=gamma, lamda=lamda, device=device))
         else:
             loss = loss_function_dict[loss_function](logits, labels, gamma=gamma, lamda=lamda, device=device)
 
@@ -69,7 +77,6 @@ def train_single_epoch(epoch,
     return train_loss / num_samples
 
 
-
 def test_single_epoch(epoch,
                       model,
                       test_val_loader,
@@ -90,9 +97,12 @@ def test_single_epoch(epoch,
 
             logits = model(data)
             if ('mmce' in loss_function):
-                loss += (len(data) * loss_function_dict[loss_function](logits, labels, gamma=gamma, lamda=lamda, device=device).item())
+                loss += (len(data) *
+                         loss_function_dict[loss_function]
+                         (logits, labels, gamma=gamma, lamda=lamda, device=device).item())
             else:
-                loss += loss_function_dict[loss_function](logits, labels, gamma=gamma, lamda=lamda, device=device).item()
+                loss += loss_function_dict[loss_function](logits, labels,
+                                                          gamma=gamma, lamda=lamda, device=device).item()
             num_samples += len(data)
 
     print('======> Test set loss: {:.4f}'.format(
